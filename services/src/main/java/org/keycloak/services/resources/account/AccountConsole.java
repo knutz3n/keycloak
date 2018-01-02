@@ -111,10 +111,13 @@ public class AccountConsole {
             map.put("isEventsEnabled", eventStore != null && realm.isEventsEnabled());
             map.put("isAuthorizationEnabled", true);
 
+            BrowserSecurityHeaderSetup browserSecurityHeaderSetup = BrowserSecurityHeaderSetup.withCspNonce();
+            map.put("cspNonce", browserSecurityHeaderSetup.getCspNonce());
+
             FreeMarkerUtil freeMarkerUtil = new FreeMarkerUtil();
             String result = freeMarkerUtil.processTemplate(map, "index.ftl", theme);
             Response.ResponseBuilder builder = Response.status(Response.Status.OK).type(MediaType.TEXT_HTML_UTF_8).language(Locale.ENGLISH).entity(result);
-            BrowserSecurityHeaderSetup.headers(builder, realm);
+            browserSecurityHeaderSetup.headers(builder, realm);
             return builder.build();
         }
     }

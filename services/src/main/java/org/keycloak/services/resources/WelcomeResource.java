@@ -202,13 +202,16 @@ public class WelcomeResource {
             if (errorMessage != null) {
                 map.put("errorMessage", errorMessage);
             }
+            BrowserSecurityHeaderSetup browserSecurityHeaderSetup = BrowserSecurityHeaderSetup.withCspNonce();
+            map.put("cspNonce", browserSecurityHeaderSetup.getCspNonce());
+
             FreeMarkerUtil freeMarkerUtil = new FreeMarkerUtil();
             String result = freeMarkerUtil.processTemplate(map, "index.ftl", theme);
 
             ResponseBuilder rb = Response.status(errorMessage == null ? Status.OK : Status.BAD_REQUEST)
                     .entity(result)
                     .cacheControl(CacheControlUtil.noCache());
-            BrowserSecurityHeaderSetup.headers(rb, BrowserSecurityHeaders.defaultHeaders);
+            browserSecurityHeaderSetup.headers(rb, BrowserSecurityHeaders.defaultHeaders);
             return rb.build();
         } catch (Exception e) {
             throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);

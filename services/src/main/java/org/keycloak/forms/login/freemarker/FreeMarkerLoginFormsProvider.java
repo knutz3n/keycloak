@@ -431,10 +431,13 @@ public class FreeMarkerLoginFormsProvider implements LoginFormsProvider {
      */
     protected Response processTemplate(Theme theme, String templateName, Locale locale) {
         try {
+            BrowserSecurityHeaderSetup browserSecurityHelper = BrowserSecurityHeaderSetup.withCspNonce();
+            attributes.put("cspNonce", browserSecurityHelper.getCspNonce());
+
             String result = freeMarker.processTemplate(attributes, templateName, theme);
             javax.ws.rs.core.MediaType mediaType = contentType == null ? MediaType.TEXT_HTML_UTF_8_TYPE : contentType;
             Response.ResponseBuilder builder = Response.status(status == null ? Response.Status.OK : status).type(mediaType).language(locale).entity(result);
-            BrowserSecurityHeaderSetup.headers(builder, realm);
+            browserSecurityHelper.headers(builder, realm);
             for (Map.Entry<String, String> entry : httpResponseHeaders.entrySet()) {
                 builder.header(entry.getKey(), entry.getValue());
             }

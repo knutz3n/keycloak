@@ -17,18 +17,17 @@
 
 package org.keycloak.services.util;
 
-import java.net.URI;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.ws.rs.core.Response;
-
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.spi.HttpRequest;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.sessions.AuthenticationSessionModel;
 import org.keycloak.theme.BrowserSecurityHeaderSetup;
 import org.keycloak.utils.MediaType;
+
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The point of this is to improve experience of browser history (back/forward/refresh buttons), but ensure there is no more redirects then necessary.
@@ -93,8 +92,11 @@ public abstract class BrowserHistoryHelper {
 
                 URI lastExecutionURL = new AuthenticationFlowURLHelper(session, session.getContext().getRealm(), session.getContext().getUri()).getLastExecutionUrl(authSession);
 
+                BrowserSecurityHeaderSetup cspHelper = BrowserSecurityHeaderSetup.withCspNonce();
+                cspHelper.injectCspNonce(response.getHeaders());
+
                 // Inject javascript for history "replaceState"
-                String responseWithJavascript = responseWithJavascript(responseString, lastExecutionURL.toString());
+                String responseWithJavascript = responseWithJavascript(responseString, lastExecutionURL.toString(), cspHelper.getCspNonce());
 
                 return Response.fromResponse(response).entity(responseWithJavascript).build();
             }
@@ -109,13 +111,13 @@ public abstract class BrowserHistoryHelper {
         }
 
 
-        private String responseWithJavascript(String origHtml, String lastExecutionUrl) {
+        private String responseWithJavascript(String origHtml, String lastExecutionUrl, String cspNonce) {
             Matcher m = HEAD_END_PATTERN.matcher(origHtml);
 
             if (m.find()) {
                 int start = m.start();
 
-                String javascript = getJavascriptText(lastExecutionUrl);
+                String javascript = getJavascriptText(lastExecutionUrl, cspNonce);
 
                 return new StringBuilder(origHtml.substring(0, start))
                         .append(javascript )
@@ -126,10 +128,14 @@ public abstract class BrowserHistoryHelper {
             }
         }
 
-        private String getJavascriptText(String lastExecutionUrl) {
-            return new StringBuilder("<SCRIPT>")
+        private String getJavascriptText(String lastExecutionUrl, String cspNonce) {
+            final StringBuilder scriptBuilder = new StringBuilder("<SCRIPT");
+            if (cspNonce != null) {
+                scriptBuilder.append(" nonce=\"").append(cspNonce).append("\"");
+            }
+            return scriptBuilder.append(">")
                     .append(" if (typeof history.replaceState === 'function') {")
-                    .append("  history.replaceState({}, \"some title\", \"" + lastExecutionUrl + "\");")
+                    .append("  history.replaceState({}, \"some title\", \"").append(lastExecutionUrl).append("\");")
                     .append(" }")
                     .append("</SCRIPT>")
                     .toString();
@@ -181,7 +187,7 @@ public abstract class BrowserHistoryHelper {
                 }
 
                 Response.ResponseBuilder builder = Response.status(200).type(MediaType.TEXT_HTML_UTF_8).entity(savedResponse);
-                BrowserSecurityHeaderSetup.headers(builder, session.getContext().getRealm()); // TODO rather all the headers from the saved response should be added here.
+                BrowserSecurityHeaderSetup.withoutCspNonce().headers(builder, session.getContext().getRealm()); // TODO rather all the headers from the saved response should be added here.
                 return builder.build();
             }
 

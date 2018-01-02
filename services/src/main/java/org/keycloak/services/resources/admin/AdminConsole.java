@@ -25,6 +25,7 @@ import org.jboss.resteasy.spi.NotFoundException;
 import org.keycloak.Config;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.common.Version;
+import org.keycloak.common.util.Base64;
 import org.keycloak.models.AdminRoles;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.Constants;
@@ -56,13 +57,9 @@ import javax.ws.rs.ext.Providers;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.security.SecureRandom;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
@@ -288,17 +285,20 @@ public class AdminConsole {
 
             URI baseUri = session.getContext().getUri().getBaseUri();
 
+            BrowserSecurityHeaderSetup browserSecurityHeaderSetup = BrowserSecurityHeaderSetup.withCspNonce();
+
             map.put("authUrl", session.getContext().getContextPath());
             map.put("consoleBaseUrl", Urls.adminConsoleRoot(baseUri, realm.getName()).getPath());
             map.put("resourceUrl", Urls.themeRoot(baseUri).getPath() + "/admin/" + theme.getName());
             map.put("masterRealm", Config.getAdminRealm());
             map.put("resourceVersion", Version.RESOURCES_VERSION);
             map.put("properties", theme.getProperties());
+            map.put("cspNonce", browserSecurityHeaderSetup.getCspNonce());
 
             FreeMarkerUtil freeMarkerUtil = new FreeMarkerUtil();
             String result = freeMarkerUtil.processTemplate(map, "index.ftl", theme);
             Response.ResponseBuilder builder = Response.status(Response.Status.OK).type(MediaType.TEXT_HTML_UTF_8).language(Locale.ENGLISH).entity(result);
-            BrowserSecurityHeaderSetup.headers(builder, realm);
+            browserSecurityHeaderSetup.headers(builder, realm);
             return builder.build();
         }
     }
