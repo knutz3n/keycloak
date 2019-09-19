@@ -166,6 +166,7 @@ public class ClientManager {
             user.setEnabled(true);
             user.setEmail(username + "@placeholder.org");
             user.setServiceAccountClientLink(client.getId());
+            realmManager.getSession().userCache().evict(client.getRealm(), user);
         }
 
         // Add protocol mappers to retrieve clientId in access token

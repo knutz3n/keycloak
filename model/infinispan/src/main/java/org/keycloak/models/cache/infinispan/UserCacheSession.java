@@ -59,6 +59,7 @@ import org.keycloak.storage.UserStorageProviderModel;
 import org.keycloak.storage.client.ClientStorageProvider;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -502,6 +503,8 @@ public class UserCacheSession implements UserCache {
             UserModel model = getDelegate().getServiceAccount(client);
             if (model == null) {
                 logger.tracev("model from delegate null");
+                query = new UserListQuery(loaded, cacheKey, realm, Collections.emptySet());
+                cache.addRevisioned(query, startupRevision);
                 return null;
             }
             userId = model.getId();
@@ -519,7 +522,12 @@ public class UserCacheSession implements UserCache {
             managedUsers.put(userId, adapter);
             return adapter;
         } else {
-            userId = query.getUsers().iterator().next();
+            Set<String> users = query.getUsers();
+            if (users.isEmpty()) {
+                logger.tracev("model from cache was null");
+                return null;
+            }
+            userId = users.iterator().next();
             if (invalidations.contains(userId)) {
                 logger.tracev("invalidated cache return delegate");
                 return getDelegate().getUserByUsername(username, realm);
