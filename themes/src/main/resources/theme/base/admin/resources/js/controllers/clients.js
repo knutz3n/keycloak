@@ -163,7 +163,7 @@ module.controller('ClientSecretCtrl', function($scope, $location, Client, Client
     }
 
     $scope.save = function() {
-        $scope.client.attributes['token.endpoint.auth.signing.alg'] = $scope.tokenEndpointAuthSigningAlg;
+        $scope.client.attributes['token.endpoint.auth.signing.alg'] = $scope.tokenEndpointAuthSigningAlg || null;
 
         Client.update({
             realm : $scope.realm.realm,
@@ -235,7 +235,7 @@ module.controller('ClientSignedJWTCtrl', function($scope, Client, Notifications)
 
     $scope.$watch('tokenEndpointAuthSigningAlg', function() {
         if (!angular.equals($scope.client.attributes['token.endpoint.auth.signing.alg'], $scope.tokenEndpointAuthSigningAlg)) {
-            $scope.client.attributes['token.endpoint.auth.signing.alg'] = $scope.tokenEndpointAuthSigningAlg;
+            $scope.client.attributes['token.endpoint.auth.signing.alg'] = $scope.tokenEndpointAuthSigningAlg || null;
 
             Client.update({
                 realm : $scope.realm.realm,
